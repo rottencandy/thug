@@ -20,19 +20,19 @@ import sched
 import time
 import logging
 import traceback
-#import urllib
 import base64
 import numbers
 import collections
 import datetime
-import types
+# import types
 import random
 import six
-import bs4 as BeautifulSoup
+import bs4
+import six.moves.urllib_parse as urllib
 
 from thug.ActiveX.ActiveX import _ActiveXObject
-from thug.AST.AST import AST
-from thug.Debugger import Shellcode
+# from thug.AST.AST import AST
+# from thug.Debugger import Shellcode
 from thug.Java.java import java
 
 from thug.DOM.W3C import w3c
@@ -40,6 +40,7 @@ from .JSClass import JSClass
 from .JSClass import JSClassConstructor
 from .JSClass import JSClassPrototype
 from .JSEngine import JSEngine
+from .JSInspector import JSInspector
 from .Navigator import Navigator
 from .Location import Location
 from .Screen import Screen
@@ -48,8 +49,6 @@ from .CCInterpreter import CCInterpreter
 from .LocalStorage import LocalStorage
 from .SessionStorage import SessionStorage
 from .w3c_bindings import w3c_bindings
-
-import six.moves.urllib_parse as urllib
 
 sched = sched.scheduler(time.time, time.sleep)
 log = logging.getLogger("Thug")
@@ -69,8 +68,8 @@ class Window(JSClass):
             self.event = sched.enter(self.delay, 1, self.execute, ())
             try:
                 sched.run()
-            except Exception:
-                pass
+            except Exception as e:
+                log.warning("[Timer] Scheduler error: %s", str(e))
 
         def stop(self):
             self.running = False
@@ -109,7 +108,7 @@ class Window(JSClass):
                  width = 800, height = 600, left = 0, top = None, **kwds):
 
         self.url = url
-        self.doc = w3c.getDOMImplementation(dom_or_doc, **kwds) if isinstance(dom_or_doc, BeautifulSoup.BeautifulSoup) else dom_or_doc
+        self.doc = w3c.getDOMImplementation(dom_or_doc, **kwds) if isinstance(dom_or_doc, bs4.BeautifulSoup) else dom_or_doc
 
         self.doc.window        = self
         self.doc.contentWindow = self
@@ -119,7 +118,7 @@ class Window(JSClass):
 
         self._navigator = navigator if navigator else Navigator(personality, self)
         self._location  = Location(self)
-        self._history   = History(self)
+        self._history   = parent.history if parent and parent.history else History(self)
 
         if url not in ('about:blank', ):
             self._history.update(url, replace)
@@ -136,8 +135,8 @@ class Window(JSClass):
         self.__init_personality()
 
         self.name          = name
-        self.defaultStatus = ""
-        self.status        = ""
+        # self.defaultStatus = ""
+        # self.status        = ""
         self._left         = left
         self._top          = top if top else self
         self._screen_top   = random.randint(0, 30)
@@ -172,16 +171,17 @@ class Window(JSClass):
             return prop[0]()
 
         if log.ThugOpts.Personality.isIE() and key.lower() in ('wscript', 'wsh', ):
-            # Prevent _ActiveXObject loops
-            # super(Window, self).__setattr__("WScript", None)
-            # WScript = _ActiveXObject(self, "WScript.Shell")
-            # super(Window, self).__setattr__(key, WScript)
-            # super(Window, self).__setattr__("WScript", WScript)
             return self.WScript
 
         if log.ThugOpts.Personality.isIE():
             if key in self.WScript.__dict__ and callable(self.WScript.__dict__[key]):
                 return self.WScript.__dict__[key]
+
+        if log.ThugOpts.Personality.isIE():
+            xmlhttp = getattr(log, 'XMLHTTP', None)
+
+            if xmlhttp and key in xmlhttp:
+                return xmlhttp[key]
 
         context = self.__class__.__dict__['context'].__get__(self, Window)
 
@@ -200,8 +200,8 @@ class Window(JSClass):
                 _method = symbol.clone()
 
             if _method is None:
-                # _method = new.instancemethod(symbol, self, Window)
-                _method = types.MethodType(symbol, Window)
+                # _method = types.MethodType(symbol, Window)
+                _method = six.create_bound_method(symbol, Window)
 
             setattr(self, key, _method)
             context.locals[key] = _method
@@ -263,9 +263,6 @@ class Window(JSClass):
 
         frames = set()
         for frame in self._findAll(['frame', 'iframe']):
-            # self.doc.DFT.set_event_handler_attributes(frame)
-            # self.doc.DFT.handle_iframe(frame)
-
             if not getattr(frame, '_node', None):
                 from thug.DOM.W3C.Core.DOMImplementation import DOMImplementation
                 DOMImplementation.createHTMLElement(self.window.doc, frame)
@@ -337,12 +334,6 @@ class Window(JSClass):
 
     def _do_ActiveXObject(self, cls, typename = 'name'):
         return _ActiveXObject(self, cls, typename)
-
-    # Window object methods
-    #
-    # escape        Encodes a string.
-    # sizeToContent Sizes the window according to its content.
-    # unescape      Unencodes a value that has been encoded in hexadecimal (e.g., a cookie).
 
     def alert(self, text):
         """
@@ -550,11 +541,12 @@ class Window(JSClass):
         """
         pass
 
-    def prompt(self, text):
+    def prompt(self, text, defaultText = None):
         """
         Returns the text entered by the user in a prompt dialog.
         """
-        return text
+        log.TextClassifier.classify(log.ThugLogging.url if log.ThugOpts.local else log.last_url_fetched, str(text))
+        return defaultText if defaultText else ""
 
     def releaseEvents(self, eventType):
         """
@@ -669,9 +661,6 @@ class Window(JSClass):
         y-coord is the pixel along the vertical axis of the document that you
         want displayed in the upper left.
         """
-        pass
-
-    def setCursor(self, s):
         pass
 
     def setInterval(self, f, delay, lang = 'JavaScript'):
@@ -830,9 +819,9 @@ class Window(JSClass):
         log.ThugOpts.activex_ready = False
 
         if not (log.ThugOpts.local and log.ThugOpts.attachment):
-            self.document       = self._document
             self.XMLHttpRequest = self._XMLHttpRequest
 
+        self.document                 = self._document
         self.ActiveXObject            = self._do_ActiveXObject
         self.DeferredListDataComplete = self._DeferredListDataComplete
         self.CollectGarbage           = self._CollectGarbage
@@ -933,7 +922,7 @@ class Window(JSClass):
         self.onmousewheel        = None
 
     def eval(self, script):
-        if script is None:
+        if not script: # pragma: no cover
             return None
 
         log.ThugLogging.add_code_snippet(script,
@@ -959,12 +948,12 @@ class Window(JSClass):
         result = 0
 
         try:
-            log.JSClassifier.classify(log.ThugLogging.url if log.ThugOpts.local else log.last_url_fetched, script)
+            log.JSClassifier.classify(log.ThugLogging.url if log.ThugOpts.local else log.last_url, script)
 
             if log.ThugOpts.code_logging:
                 log.ThugLogging.add_code_snippet(script, 'Javascript', 'Contained_Inside')
-        except Exception:
-            pass
+        except Exception as e:
+            log.warning("[Window] JSClassifier error: %s", str(e))
 
         if tag:
             self.doc.current = tag
@@ -981,18 +970,21 @@ class Window(JSClass):
                 self.doc.current = self.doc.doc.contents[-1]
 
         with self.context as ctxt:
-            try:
-                ast = AST(script, self)
-            except Exception:
-                log.warning(traceback.format_exc())
-                return result
+            # try:
+            #    ast = AST(script, self)
+            #    ast.walk()
+            # except Exception:
+            #    log.warning(traceback.format_exc())
+            #    return result
 
             if log.ThugOpts.Personality.isIE():
                 cc = CCInterpreter()
                 script = cc.run(script)
 
-            shellcode = Shellcode.Shellcode(self, ctxt, ast, script)
-            result    = shellcode.run()
+            # shellcode = Shellcode.Shellcode(self, ctxt, ast, script)
+            # result    = shellcode.run()
+            inspector = JSInspector(self, ctxt, script)
+            result = inspector.run()
 
         log.ThugLogging.ContextAnalyzer.analyze(self)
         return result
@@ -1052,7 +1044,7 @@ class Window(JSClass):
     def _XMLHttpRequest(self):
         return _ActiveXObject(self, 'microsoft.xmlhttp')
 
-    def _DeferredListDataComplete(self):
+    def _DeferredListDataComplete(self): # pragma: no cover
         for name in self.context.locals.keys():
             local = getattr(self.context.locals, name, None)
             if not local:
@@ -1083,10 +1075,7 @@ class Window(JSClass):
             except Exception:
                 return None
 
-            if response is None:
-                return None
-
-            if response.status_code == 404:
+            if response is None or not response.ok:
                 return None
 
             html = response.content
@@ -1096,8 +1085,8 @@ class Window(JSClass):
 
             try:
                 log.HTMLClassifier.classify(log.ThugLogging.url if log.ThugOpts.local else url, html)
-            except Exception:
-                pass
+            except Exception as e:
+                log.warning("[Window] HTMLClassifier error: %s", str(e))
 
             content_type = response.headers.get('content-type' , None)
             if content_type:
@@ -1121,7 +1110,7 @@ class Window(JSClass):
             html = ''
             kwds = {}
 
-        dom = BeautifulSoup.BeautifulSoup(html, "html5lib")
+        dom = bs4.BeautifulSoup(html, "html5lib")
 
         for spec in specs.split(','):
             spec = [s.strip() for s in spec.split('=')]
@@ -1130,11 +1119,11 @@ class Window(JSClass):
                 if spec[0] in ['width', 'height', 'left', 'top']:
                     kwds[spec[0]] = int(spec[1])
 
-            if name in ['_blank', '_parent', '_self', '_top']:
-                kwds['target'] = name
-                name = ''
-            else:
-                kwds['target'] = '_blank'
+        if name in ['_blank', '_parent', '_self', '_top']:
+            kwds['target'] = name
+            name = ''
+        else:
+            kwds['target'] = '_blank'
 
         return Window(url, dom, navigator = None, personality = self._personality,
                         name = name, parent = self, opener = self, replace = replace, **kwds)

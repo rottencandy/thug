@@ -8,15 +8,11 @@ import six.moves.urllib.parse as urlparse
 
 from .HTMLElement import HTMLElement
 from .attr_property import attr_property
-from .compatibility import thug_long
 
 log = logging.getLogger("Thug")
 
 
 class HTMLAnchorElement(HTMLElement):
-    def __init__(self, doc, tag):
-        HTMLElement.__init__(self, doc, tag)
-
     accessKey = attr_property("accesskey")
     charset   = attr_property("charset", default = "")
     coords    = attr_property("coords")
@@ -26,9 +22,12 @@ class HTMLAnchorElement(HTMLElement):
     rel       = attr_property("rel")
     rev       = attr_property("rev")
     shape     = attr_property("shape")
-    tabIndex  = attr_property("tabindex", thug_long)
+    tabIndex  = attr_property("tabindex", int)
     target    = attr_property("target")
     type      = attr_property("type")
+
+    def __init__(self, doc, tag):
+        HTMLElement.__init__(self, doc, tag)
 
     @property
     def protocol(self):

@@ -1,31 +1,22 @@
 #!/usr/bin/env python
 
 import logging
+import bs4
 import six
 import six.moves.urllib.parse as urlparse
-import bs4 as BeautifulSoup
-
 from lxml.html import builder as E
 from lxml.html import tostring
 
 from thug.DOM.W3C.Core.Document import Document
 from .HTMLBodyElement import HTMLBodyElement
 from .text_property import text_property
-from .xpath_property import xpath_property
 
 
 log = logging.getLogger("Thug")
 
 
 class HTMLDocument(Document):
-    title       = xpath_property("/html/head/title/text()")
-    # body        = xpath_property("/html/body[1]", readonly = True)
-    images      = xpath_property("//img", readonly = True)
-    applets     = xpath_property("//applet", readonly = True)
-    # forms       = xpath_property("//form", readonly = True)
-    links       = xpath_property("//a[@href]", readonly = True)
-    anchors     = xpath_property("//a[@name]", readonly = True)
-    innerHTML   = text_property()
+    innerHTML = text_property()
 
     def __str__(self):
         return "[object HTMLDocument]"
@@ -65,12 +56,12 @@ class HTMLDocument(Document):
             return
 
     def __init_personality_IE(self):
-        from thug.DOM.W3C.Core.DocumentCompatibleInfoCollection import DocumentCompatibleInfoCollection
+        from .HTMLDocumentCompatibleInfoCollection import HTMLDocumentCompatibleInfoCollection
 
         if log.ThugOpts.Personality.browserMajorVersion < 8:
             self._compatible = None
         else:
-            self._compatible = DocumentCompatibleInfoCollection(self.doc, [])
+            self._compatible = HTMLDocumentCompatibleInfoCollection(self.doc, [])
 
         if log.ThugOpts.Personality.browserMajorVersion > 7:
             self.implementation.createHTMLDocument = self.implementation._createHTMLDocument
@@ -152,14 +143,64 @@ class HTMLDocument(Document):
         return ""
 
     @property
+    def anchors(self):
+        from .HTMLCollection import HTMLCollection
+
+        nodes = [f for f in self.doc.find_all('a') if 'name' in f.attrs and f.attrs['name']]
+        return HTMLCollection(self.doc, nodes)
+
+    @property
+    def applets(self):
+        from .HTMLCollection import HTMLCollection
+
+        applets = [f for f in self.doc.find_all('applet')]
+        objects = [f for f in self.doc.find_all('object') if 'type' in f.attrs and 'applet' in f.attrs['type']]
+        return HTMLCollection(self.doc, applets + objects)
+
+    @property
     def forms(self):
         from .HTMLCollection import HTMLCollection
-        return HTMLCollection(self.doc, [f for f in self.doc.find_all('form')])
+
+        nodes = [f for f in self.doc.find_all('form')]
+        return HTMLCollection(self.doc, nodes)
+
+    @property
+    def images(self):
+        from .HTMLCollection import HTMLCollection
+
+        nodes = [f for f in self.doc.find_all('img')]
+        return HTMLCollection(self.doc, nodes)
+
+    @property
+    def links(self):
+        from .HTMLCollection import HTMLCollection
+
+        nodes = [f for f in self.doc.find_all(['a', 'area']) if 'href' in f.attrs and f.attrs['href']]
+        return HTMLCollection(self.doc, nodes)
 
     @property
     def styleSheets(self):
         from .HTMLCollection import HTMLCollection
-        return HTMLCollection(self.doc, [f for f in self.doc.find_all('style')])
+
+        nodes = [f for f in self.doc.find_all('style')]
+        return HTMLCollection(self.doc, nodes)
+
+    def getTitle(self):
+        title = self.head.tag.find('title')
+        return str(title.string) if title else ""
+
+    def setTitle(self, value):
+        title = self.head.tag.find('title')
+
+        if title:
+            title.string = value
+            return
+
+        title = E.TITLE(value)
+        tag   = bs4.BeautifulSoup(tostring(title), "html.parser")
+        self.head.tag.append(tag)
+
+    title = property(getTitle, setTitle)
 
     @property
     def lastModified(self):
@@ -179,13 +220,9 @@ class HTMLDocument(Document):
 
     cookie = property(getCookie, setCookie)
 
-    def getDomain(self):
+    @property
+    def domain(self):
         return self._domain
-
-    def setDomain(self, value):
-        self._domain = value
-
-    domain = property(getDomain, setDomain)
 
     @property
     def URL(self):
@@ -193,12 +230,11 @@ class HTMLDocument(Document):
 
     @property
     def documentElement(self):
-        from .HTMLElement import HTMLElement
+        from .HTMLHtmlElement import HTMLHtmlElement
 
         html = self.doc.find('html')
-        return HTMLElement(self, html if html else self.doc)
+        return HTMLHtmlElement(self, html if html else self.doc)
 
-    # FIXME
     @property
     def readyState(self):
         return self._readyState
@@ -217,7 +253,7 @@ class HTMLDocument(Document):
         tag = self.doc.find('head')
         if not tag:
             head = E.HEAD()
-            tag  = BeautifulSoup.BeautifulSoup(tostring(head), "html.parser")
+            tag  = bs4.BeautifulSoup(tostring(head), "html.parser")
 
         self._head = HTMLHeadElement(self.doc, tag)
         return self._head
@@ -227,7 +263,7 @@ class HTMLDocument(Document):
 
     def setCompatible(self, compatible):
         from .HTMLDocumentCompatibleInfo import HTMLDocumentCompatibleInfo
-        from thug.DOM.W3C.Core.DocumentCompatibleInfoCollection import DocumentCompatibleInfoCollection
+        from .HTMLDocumentCompatibleInfoCollection import HTMLDocumentCompatibleInfoCollection
 
         _compatibles = list()
 
@@ -235,7 +271,7 @@ class HTMLDocument(Document):
             for s in compatible.split(';'):
                 try:
                     (useragent, version) = s.split('=')
-                except ValueError:
+                except ValueError: # pragma: no cover
                     # Ignore the http-equiv X-UA-Compatible content if its
                     # format is not correct
                     return
@@ -244,14 +280,13 @@ class HTMLDocument(Document):
                     p = HTMLDocumentCompatibleInfo(useragent, v)
                     _compatibles.append(p)
 
-            self._compatible = DocumentCompatibleInfoCollection(self.doc, _compatibles)
+            self._compatible = HTMLDocumentCompatibleInfoCollection(self.doc, _compatibles)
 
     compatible = property(getCompatible, setCompatible)
 
     @property
     def documentMode(self):
-        # version = log.ThugOpts.Personality.browserVersion
-        major   = log.ThugOpts.Personality.browserMajorVersion
+        major = log.ThugOpts.Personality.browserMajorVersion
 
         if major < 8:
             return 7 if self.compatMode in ("CSS1Compat", ) else 5
@@ -277,10 +312,10 @@ class HTMLDocument(Document):
 
             try:
                 mode_version = int(mode_version)
-            except ValueError:
+            except ValueError: # pragma: no cover
                 continue
 
-            if mode_version not in (5, 7, 8, 9, 10):
+            if mode_version not in (5, 7, 8, 9, 10): # pragma: no cover
                 continue
 
             if mode_version <= major and mode_version >= engine:
@@ -292,7 +327,7 @@ class HTMLDocument(Document):
         return engine
 
     def open(self, mimetype = 'text/html', historyPosition = "replace"):
-        self.doc = BeautifulSoup.BeautifulSoup("", "html5lib")
+        self.doc = bs4.BeautifulSoup("", "html5lib")
         return self
 
     def close(self):
@@ -302,7 +337,7 @@ class HTMLDocument(Document):
         html = "".join(self._html)
         self._html = None
 
-        self.doc = BeautifulSoup.BeautifulSoup(html, "html5lib")
+        self.doc = bs4.BeautifulSoup(html, "html5lib")
 
     def write(self, html):
         if log.ThugOpts.features_logging:
@@ -326,16 +361,16 @@ class HTMLDocument(Document):
         else:
             parent = body if body and tag.parent.name in ('html', ) else tag.parent
 
-        for tag in BeautifulSoup.BeautifulSoup(html, "html.parser").contents:
-            if isinstance(tag, BeautifulSoup.NavigableString):
+        for tag in bs4.BeautifulSoup(html, "html.parser").contents:
+            if isinstance(tag, bs4.NavigableString):
                 child = list(parent.children)[-1]
 
-                if isinstance(child, BeautifulSoup.NavigableString):
+                if isinstance(child, bs4.NavigableString):
                     child.string.replace_with(child.string + tag)
-                if isinstance(child, BeautifulSoup.Tag):
+                if isinstance(child, bs4.Tag):
                     child.append(tag)
 
-            if isinstance(tag, BeautifulSoup.Tag):
+            if isinstance(tag, bs4.Tag):
                 parent.insert(len(parent.contents), tag)
 
             name = getattr(tag, "name", None)
@@ -344,7 +379,7 @@ class HTMLDocument(Document):
 
             try:
                 handler = getattr(self._win.doc.DFT, "handle_%s" % (name, ), None)
-            except Exception:
+            except Exception: # pragma: no cover
                 handler = getattr(log.DFT, "handle_%s" % (name, ), None)
 
             if handler:
@@ -354,14 +389,14 @@ class HTMLDocument(Document):
         if html == _html:
             return
 
-        for tag in BeautifulSoup.BeautifulSoup(_html, "html.parser").contents:
+        for tag in bs4.BeautifulSoup(_html, "html.parser").contents:
             name = getattr(tag, "name", None)
             if name in ("script", None, ):
                 continue
 
             try:
                 handler = getattr(self._win.doc.DFT, "handle_%s" % (name, ), None)
-            except Exception:
+            except Exception: # pragma: no cover
                 handler = getattr(log.DFT, "handle_%s" % (name, ), None)
 
             if handler:

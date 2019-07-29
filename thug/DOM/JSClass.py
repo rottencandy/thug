@@ -5,12 +5,10 @@ import collections
 
 class JSClass(object):
     __properties__  = {}
+    __methods__     = {}
     __watchpoints__ = {}
 
     def __str__(self):
-        return self.toString()
-
-    def __unicode__(self):
         return self.toString()
 
     def __getattr__(self, name):
@@ -24,6 +22,10 @@ class JSClass(object):
 
         if prop and isinstance(prop[0], collections.Callable):
             return prop[0]()
+
+        method = self.__methods__.get(name, None)
+        if method and isinstance(method, collections.Callable):
+            return method
 
         raise AttributeError(name)
 
@@ -51,9 +53,9 @@ class JSClass(object):
         """Returns a Boolean value indicating whether an object has a property with the specified name"""
         return hasattr(self, name)
 
-    def isPrototypeOf(self, obj):
-        """Returns a Boolean value indicating whether an object exists in the prototype chain of another object"""
-        raise NotImplementedError()
+    # def isPrototypeOf(self, obj):
+    #    """Returns a Boolean value indicating whether an object exists in the prototype chain of another object"""
+    #    raise NotImplementedError()
 
     def __defineGetter__(self, name, getter):
         """Binds an object's property to a function to be called when that property is looked up"""

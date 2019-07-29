@@ -34,11 +34,14 @@ class JSClassifier(BaseClassifier):
         for match in self.rules.match(data = script):
             self.matches.append((url, match))
 
-            if self.discard_url_match(url, match):
+            if self.discard_url_match(url, match): # pragma: no cover
                 continue
+
+            self.handle_match_etags(match)
 
             rule = match.rule
             tags = ",".join([" ".join(t.split('_')) for t in match.tags])
+
             log.ThugLogging.log_classifier("js", url, rule, tags)
 
         for c in self.custom_classifiers:

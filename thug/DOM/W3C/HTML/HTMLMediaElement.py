@@ -29,15 +29,15 @@ HAVE_ENOUGH_DATA  = 4   # Enough data is available - and the download rate is hi
 
 
 class HTMLMediaElement(HTMLElement):
-    def __init__(self, doc, tag):
-        HTMLElement.__init__(self, doc, tag)
-        self._paused = False
-
     autoplay   = attr_property("autoplay", bool)
     controls   = attr_property("console", bool, readonly = True, default = False)
     loop       = attr_property("loop", bool, default = False)
     mediaGroup = attr_property("mediagroup")
     _src       = attr_property("src", default = "")
+
+    def __init__(self, doc, tag):
+        HTMLElement.__init__(self, doc, tag)
+        self._paused = False
 
     def get_src(self):
         return self._src
@@ -47,7 +47,7 @@ class HTMLMediaElement(HTMLElement):
 
         try:
             self.doc.window._navigator.fetch(src)
-        except Exception:
+        except Exception: # pragma: no cover
             return
 
     src = property(get_src, set_src)

@@ -1,20 +1,20 @@
-PySocks==1.6.8
+PySocks==1.7.0
 beautifulsoup4==4.7.1
 cchardet==2.1.4
 cssutils==1.0.2
-elasticsearch==6.3.1
-esprima==4.0.1
+elasticsearch==7.0.2
+# esprima==4.0.1
 html5lib==1.0.1
-lxml==4.3.2
+lxml==4.3.4
 networkx==2.2
-pefile==2018.8.8
+pefile==2019.4.18
 pygraphviz==1.5
 pylibemu==0.5.8
 pymongo==3.7.2
 python-magic==0.4.15
 rarfile==3.0
-requests==2.21.0
+requests==2.22.0
 six==1.12.0
 ssdeep==3.2
-yara-python==3.8.1
+yara-python==3.10.0
 zope.interface==4.6.0

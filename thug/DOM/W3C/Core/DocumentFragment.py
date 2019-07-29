@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import logging
-import bs4 as BeautifulSoup
+import bs4
 
 from .Node import Node
 
@@ -10,7 +10,7 @@ log = logging.getLogger("Thug")
 
 class DocumentFragment(Node):
     def __init__(self, doc):
-        self.tag = BeautifulSoup.Tag(parser = doc, name = 'documentfragment')
+        self.tag = bs4.Tag(parser = doc, name = 'documentfragment')
         Node.__init__(self, doc)
         self.__init_personality()
 
@@ -53,7 +53,7 @@ class DocumentFragment(Node):
 
         try:
             s = self.tag.select(selectors)
-        except Exception:
+        except Exception: # pragma: no cover
             return NodeList(self.doc, [])
 
         return NodeList(self.doc, s)
@@ -63,13 +63,10 @@ class DocumentFragment(Node):
 
         try:
             s = self.tag.select(selectors)
-        except Exception:
+        except Exception: # pragma: no cover
             return None
 
-        if s and s[0]:
-            return DOMImplementation.createHTMLElement(self, s[0])
-
-        return None
+        return DOMImplementation.createHTMLElement(self, s[0]) if s and s[0] else None
 
     @property
     def nodeName(self):

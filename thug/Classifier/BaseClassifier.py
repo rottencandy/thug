@@ -37,13 +37,13 @@ class BaseClassifier(object):
         self.rules_namespace_id = 1
 
         p = getattr(self, 'default_rule_file', None)
-        if p is None:
+        if p is None: # pragma: no cover
             log.warning("[%s] Skipping not existing default classification rule file", self.classifier)
             return
 
         r = os.path.join(log.configuration_path, p)
 
-        if not os.path.exists(r):
+        if not os.path.exists(r): # pragma: no cover
             log.warning("[%s] Skipping not existing default classification rule file", self.classifier)
             return
 
@@ -55,13 +55,13 @@ class BaseClassifier(object):
         self.filters_namespace_id = 1
 
         p = getattr(self, 'default_filter_file', None)
-        if p is None:
+        if p is None: # pragma: no cover
             log.warning("[%s] Skipping not existing default filter file", self.classifier)
             return
 
         r = os.path.join(log.configuration_path, p)
 
-        if not os.path.exists(r):
+        if not os.path.exists(r): # pragma: no cover
             log.warning("[%s] Skipping not existing default filter file", self.classifier)
             return
 
@@ -92,13 +92,13 @@ class BaseClassifier(object):
 
         for value in values.split(','):
             domain = value.lower().strip()
-            if not domain:
+            if not domain: # pragma: no cover
                 continue
 
             prefix = "" if domain.startswith(".") else "."
 
             if netloc.endswith("{}{}".format(prefix, domain)):
-                log.debug("[discard_meta_domain_whitelist] Whitelisted domain: %s (URL: %s)", domain, url)
+                log.warning("[discard_meta_domain_whitelist] Whitelisted domain: %s (URL: %s)", domain, url)
                 return True
 
         return False
@@ -116,9 +116,18 @@ class BaseClassifier(object):
             log.warning("Skipping non callable custom classifier %s", str(method))
             return
 
-        # method_name = method.im_func.func_name
         method_name = six.get_function_code(method).co_name
         self.custom_classifiers[method_name] = method.__get__(self)
 
     def reset_customclassifiers(self):
         self.custom_classifiers = dict()
+
+    def handle_match_etags(self, match):
+        etags = match.meta.get('etags', None)
+        if etags is None:
+            return
+
+        _etags = [t.strip() for t in etags.split(',')]
+        for s in match.strings:
+            if s[1] in _etags and s[2] not in match.tags:
+                match.tags.append(s[2])

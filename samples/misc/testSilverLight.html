@@ -1,0 +1,10 @@
+<html>
+<body>
+<script>
+	try {
+		var obj = ActiveXObject("AgControl.AgControl")
+		alert("Version 4.0 supported: " + obj.isVersionSupported('4.0'));
+	} catch(e) {}
+</script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import logging
-import bs4 as BeautifulSoup
+import bs4
 
 from .Node import Node
 from thug.DOM.W3C.Events.DocumentEvent import DocumentEvent
@@ -85,7 +85,7 @@ class Document(Node, DocumentEvent, DocumentView):
 
         try:
             s = self.doc.select(selectors)
-        except Exception:
+        except Exception: # pragma: no cover
             return NodeList(self.doc, [])
 
         return NodeList(self.doc, s)
@@ -95,13 +95,10 @@ class Document(Node, DocumentEvent, DocumentView):
 
         try:
             s = self.doc.select(selectors)
-        except Exception:
+        except Exception: # pragma: no cover
             return None
 
-        if s and s[0]:
-            return DOMImplementation.createHTMLElement(self, s[0])
-
-        return None
+        return DOMImplementation.createHTMLElement(self, s[0]) if s and s[0] else None
 
     # Introduced in DOM Level 3
     @property
@@ -133,7 +130,7 @@ class Document(Node, DocumentEvent, DocumentView):
         if _doctype:
             return _doctype
 
-        tags = [t for t in self.doc if isinstance(t, BeautifulSoup.Doctype)]
+        tags = [t for t in self.doc if isinstance(t, bs4.Doctype)]
         if not tags:
             return None
 
@@ -145,11 +142,11 @@ class Document(Node, DocumentEvent, DocumentView):
         return self
 
     @property
-    def documentElement(self):
-        from .Element import Element
+    def documentElement(self): # pragma: no cover
+        from thug.DOM.W3C.HTML.HTMLHtmlElement import HTMLHtmlElement
 
         html = self.doc.find('html')
-        return Element(self, html if html else self.doc)
+        return HTMLHtmlElement(self, html if html else self.doc)
 
     def getCharacterSet(self):
         return self._character_set
@@ -183,7 +180,7 @@ class Document(Node, DocumentEvent, DocumentView):
             if tagname.startswith('<') and '>' in tagname:
                 tagname = tagname[1:].split('>')[0]
 
-        return DOMImplementation.createHTMLElement(self, BeautifulSoup.Tag(parser = self.doc, name = tagname))
+        return DOMImplementation.createHTMLElement(self, bs4.Tag(parser = self.doc, name = tagname))
 
     def createDocumentFragment(self):
         from .DocumentFragment import DocumentFragment
@@ -195,19 +192,19 @@ class Document(Node, DocumentEvent, DocumentView):
 
     def createTextNode(self, data):
         from .Text import Text
-        return Text(self, BeautifulSoup.NavigableString(data))
+        return Text(self, bs4.NavigableString(data))
 
     def createComment(self, data):
         from .Comment import Comment
-        return Comment(self, BeautifulSoup.Comment(data))
+        return Comment(self, bs4.Comment(data))
 
     def createCDATASection(self, data):
         from .CDATASection import CDATASection
-        return CDATASection(self, BeautifulSoup.CData(data))
+        return CDATASection(self, bs4.CData(data))
 
     def createProcessingInstruction(self, target, data):
         from .ProcessingInstruction import ProcessingInstruction
-        return ProcessingInstruction(self, target, BeautifulSoup.ProcessingInstruction(data))
+        return ProcessingInstruction(self, target, bs4.ProcessingInstruction(data))
 
     def createAttribute(self, name):
         from .Attr import Attr

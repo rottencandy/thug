@@ -14,6 +14,30 @@ class TestClassifiers(object):
     def catchall(self, url, *args):
         log.warning("[CATCHALL Custom Classifier] URL: %s", url)
 
+    def do_perform_remote_test(self, caplog, url, expected):
+        thug = ThugAPI()
+
+        thug.set_useragent('win7ie90')
+        thug.set_threshold(2)
+        thug.disable_cert_logging()
+        thug.set_features_logging()
+        thug.log_init(url)
+
+        thug.add_htmlclassifier(os.path.join(self.signatures_path, "html_signature_12.yar"))
+
+        thug.run_remote(url)
+
+        records = [r.message for r in caplog.records]
+
+        matches = 0
+
+        for e in expected:
+            for record in records:
+                if e in record:
+                    matches += 1
+
+        assert matches >= len(expected)
+
     def do_perform_test(self, caplog, sample, expected):
         thug = ThugAPI()
 
@@ -58,7 +82,7 @@ class TestClassifiers(object):
     def test_html_classifier_1(self, caplog):
         sample   = os.path.join(self.classifiers_path, "test1.html")
         expected = ['[HTML Classifier]',
-                    'thug/samples/classifiers/test1.html (Rule: html_signature_1, Classification: )']
+                    'thug/samples/classifiers/test1.html (Rule: html_signature_1, Classification: strVar)']
 
         self.do_perform_test(caplog, sample, expected)
 
@@ -103,3 +127,15 @@ class TestClassifiers(object):
                     '[CATCHALL Custom Classifier] URL: https://buffer.github.io/thug/']
 
         self.do_perform_test(caplog, sample, expected)
+
+    def test_vbs_signature_8(self, caplog):
+        sample   = os.path.join(self.classifiers_path, "test8.html")
+        expected = ['[VBS Classifier]',
+                    'thug/samples/classifiers/test8.html (Rule: vbs_signature_6, Classification: )']
+
+        self.do_perform_test(caplog, sample, expected)
+
+    def test_html_classifier_12(self, caplog):
+        expected = ['[discard_meta_domain_whitelist] Whitelisted domain: antifork.org']
+
+        self.do_perform_remote_test(caplog, 'buffer.antifork.org', expected)

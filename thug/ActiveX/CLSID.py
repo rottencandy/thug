@@ -102,6 +102,7 @@ from .modules import VsaIDEDTE
 from .modules import VsmIDEDTE
 from .modules import WebViewFolderIcon
 from .modules import WindowsMediaPlayer
+from .modules import WinNTSystemInfo
 from .modules import WinZip
 from .modules import WMEncProfileManager
 from .modules import WMP
@@ -721,11 +722,12 @@ CLSID = [
                             'responseXML'           : '',
                             'readyState'            : 4,
                             'timeout'               : 0,
+                            'mimeType'              : '',
                             'onerror'               : None,
                             'onload'                : None,
                             'onloadstart'           : None,
                             'onprogress'            : None,
-                            'onreadystatechange'    : None,
+                            # 'onreadystatechange'    : None,
                             'onabort'               : None,
                             'ontimeout'             : None,
                             'withCredentials'       : False,
@@ -1409,6 +1411,25 @@ CLSID = [
                           },
         },
 
+        # WinNTSystemInfo
+        {
+            'id'        : ( '', ),
+            'name'      : ( 'winntsysteminfo'),
+            'attrs'     : {},
+            'funcattrs' : {
+                            'ComputerName'  : WinNTSystemInfo.GetComputerName,
+                            'DomainName'    : WinNTSystemInfo.GetDomainName,
+                            'PDC'           : WinNTSystemInfo.GetPDC,
+                            'UserName'      : WinNTSystemInfo.GetUserName,
+                          },
+            'methods'   : {
+                            'GetComputerName'  : WinNTSystemInfo.GetComputerName,
+                            'GetDomainName'    : WinNTSystemInfo.GetDomainName,
+                            'GetPDC'           : WinNTSystemInfo.GetPDC,
+                            'GetUserName'      : WinNTSystemInfo.GetUserName,
+                          },
+        },
+
         # WinZip
         {
             'id'        : ( 'A09AE68F-B14D-43ED-B713-BA413F034904', ),
@@ -1464,6 +1485,7 @@ CLSID = [
                             'CreateShortcut'            : WScriptShell.CreateShortcut,
                             'RegRead'                   : WScriptShell.RegRead,
                             'RegWrite'                  : WScriptShell.RegWrite,
+                            'Popup'                     : WScriptShell.Popup
                           }
         },
 

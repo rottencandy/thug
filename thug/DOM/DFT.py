@@ -21,19 +21,18 @@ import re
 import string
 import base64
 import random
-import types
+# import types
 import logging
 
+import bs4
 import six
 import six.moves.urllib.parse as urlparse
-from cssutils.parse import CSSParser
-import bs4 as BeautifulSoup
 import cchardet
-
 import pylibemu
 
-from thug.ActiveX.ActiveX import _ActiveXObject
+from cssutils.parse import CSSParser
 
+from thug.ActiveX.ActiveX import _ActiveXObject
 from thug.DOM.W3C import w3c
 
 log = logging.getLogger("Thug")
@@ -90,7 +89,6 @@ class DFT(object):
         self.window.doc.DFT    = self
         self.anchors           = list()
         self.forms             = kwds['forms'] if 'forms' in kwds else list()
-        self.meta              = dict()
         self._context          = None
         log.DFT                = self
         self._init_events()
@@ -117,7 +115,8 @@ class DFT(object):
             name   = "{}_hook".format(label)
             # _hook  = hook.im_func if hook.im_self else hook
             _hook = six.get_method_function(hook) if six.get_method_self(hook) else hook
-            method = types.MethodType(_hook, self, DFT)
+            # method = types.MethodType(_hook, self, DFT)
+            method = six.create_bound_method(_hook, DFT)
             setattr(self, name, method)
 
     def __enter__(self):
@@ -332,10 +331,7 @@ class DFT(object):
             except Exception:
                 return
 
-            if response is None:
-                return
-
-            if not response.ok:
+            if response is None or not response.ok:
                 return
 
             doc    = w3c.parseString(response.content)
@@ -352,20 +348,6 @@ class DFT(object):
             except KeyError:
                 break
 
-    def check_attrs(self, p):
-        for value in p.attrs.values():
-            self.check_shellcode(value)
-
-    def shift(self, script, s):
-        if script.lower().startswith(s):
-            return script[len(s):].lstrip()
-        return script
-
-    def fix(self, script):
-        script = self.shift(script, 'javascript:')
-        script = self.shift(script, 'return')
-        return script
-
     def get_evtObject(self, elem, evtType):
         from thug.DOM.W3C.Events.Event import Event
         from thug.DOM.W3C.Events.MouseEvent import MouseEvent
@@ -373,21 +355,24 @@ class DFT(object):
 
         evtObject = None
 
-        if evtType in MouseEvent.MouseEventTypes:
-            evtObject = MouseEvent(evtType, elem)
+        if evtType in MouseEvent.EventTypes:
+            evtObject = MouseEvent()
 
-        if evtType in HTMLEvent.HTMLEventTypes:
-            evtObject = HTMLEvent(evtType, elem)
+        if evtType in HTMLEvent.EventTypes:
+            evtObject = HTMLEvent()
 
         if evtObject is None:
             return None
 
+        evtObject._target = elem
         evtObject.eventPhase = Event.AT_TARGET
         evtObject.currentTarget = elem
         return evtObject
 
     # Events handling
     def handle_element_event(self, evt):
+        from thug.DOM.W3C.Events.Event import Event
+
         for (elem, eventType, listener, capture) in self.listeners:  # pylint:disable=unused-variable
             if getattr(elem, 'name', None) is None:
                 continue
@@ -395,11 +380,14 @@ class DFT(object):
             if elem.name in ('body', ):
                 continue
 
+            evtObject = Event()
+            evtObject._type = eventType
+
             if eventType in (evt, ):
                 if (elem._node, evt) in self.dispatched_events:
                     continue
 
-                elem._node.dispatchEvent(evt)
+                elem._node.dispatchEvent(evtObject)
                 self.dispatched_events.add((elem._node, evt))
 
     def handle_window_storage_event(self, onevt, evtObject):
@@ -464,7 +452,7 @@ class DFT(object):
                 self.run_event_handler(listener, evtObject)
                 count -= 1
 
-    def build_event_handler(self, ctx, h):
+    def _build_event_handler(self, ctx, h):
         # When an event handler is registered by setting an HTML attribute
         # the browser converts the string of JavaScript code into a function.
         # Browsers other than IE construct a function with a single argument
@@ -476,6 +464,13 @@ class DFT(object):
             return ctx.eval("(function() { with(document) { with(this.form || {}) { with(this) { event = window.event; %s } } } }) " % (h, ))
 
         return ctx.eval("(function(event) { with(document) { with(this.form || {}) { with(this) { %s } } } }) " % (h, ))
+
+    def build_event_handler(self, ctx, h):
+        try:
+            return self._build_event_handler(ctx, h)
+        except SyntaxError as e: # pragma: no cover
+            log.info("[SYNTAX ERROR][build_event_handler] %s", str(e))
+            return None
 
     def set_event_handler_attributes(self, elem):
         try:
@@ -566,8 +561,8 @@ class DFT(object):
 
     def _handle_jnlp(self, data, headers, params):
         try:
-            soup = BeautifulSoup.BeautifulSoup(data, "lxml")
-        except Exception:
+            soup = bs4.BeautifulSoup(data, "lxml")
+        except Exception: # pragma: no cover
             return
 
         jnlp = soup.find("jnlp")
@@ -606,6 +601,9 @@ class DFT(object):
             if name.lower() in ('param', ):
                 if all(p in child.attrs for p in ('name', 'value', )):
                     params[child.attrs['name'].lower()] = child.attrs['value']
+
+                    if 'type' in child.attrs:
+                        params['type'] = child.attrs['type']
 
             if name.lower() in ('embed', ):
                 self.handle_embed(child)
@@ -720,7 +718,6 @@ class DFT(object):
 
         self.check_small_element(_object, 'object')
 
-        # self.check_attrs(_object)
         params = self.do_handle_params(_object)
 
         classid  = _object.get('classid', None)
@@ -736,7 +733,7 @@ class DFT(object):
                 self.window._navigator.fetch(codebase,
                                              redirect_type = "object codebase",
                                              params = params)
-            except Exception:
+            except Exception: # pragma: no cover
                 pass
 
         if data and not data.startswith('data:'):
@@ -763,16 +760,20 @@ class DFT(object):
             if _id is None:
                 return
 
-            setattr(self.window, _id, axo)
-            setattr(self.window.doc, _id, axo)
+            try:
+                setattr(self.window, _id, axo)
+                setattr(self.window.doc, _id, axo)
+            except TypeError:
+                pass
 
     def _get_script_for_event_params(self, attr_event):
         params = attr_event.split('(')
-        if len(params) < 2:
-            return None
 
-        params = params[1].split(')')[0]
-        return params.split(',')
+        if len(params) > 1:
+            params = params[1].split(')')[0]
+            return [p for p in params.split(',') if p]
+
+        return list()
 
     def _handle_script_for_event(self, script):
         attr_for   = script.get("for", None)
@@ -782,10 +783,8 @@ class DFT(object):
             return
 
         params = self._get_script_for_event_params(attr_event)
-        if not params:
-            return
 
-        if 'playstatechange' in attr_event.lower():
+        if 'playstatechange' in attr_event.lower() and params:
             with self.context as ctx:
                 newState = params.pop()
                 ctx.eval("%s = 0;" % (newState.strip(), ))
@@ -1142,7 +1141,7 @@ class DFT(object):
 
     def handle_meta_http_equiv(self, meta):
         http_equiv = meta.get('http-equiv', None)
-        if http_equiv is None:
+        if http_equiv in (None, 'http-equiv'):
             return
 
         content = meta.get('content', None)
@@ -1206,7 +1205,7 @@ class DFT(object):
         if url.startswith("'") and url.endswith("'"):
             url = url[1:-1]
 
-        if url in self.meta and self.meta[url] >= 3:
+        if url in log.ThugLogging.meta and log.ThugLogging.meta[url] >= 3:
             return
 
         if data_uri:
@@ -1221,10 +1220,10 @@ class DFT(object):
         if response is None or response.status_code in (404, ):
             return
 
-        if url in self.meta:
-            self.meta[url] += 1
+        if url in log.ThugLogging.meta:
+            log.ThugLogging.meta[url] += 1
         else:
-            self.meta[url] = 1
+            log.ThugLogging.meta[url] = 1
 
         doc    = w3c.parseString(response.content)
         window = Window(self.window.url, doc, personality = log.ThugOpts.useragent)
@@ -1343,7 +1342,7 @@ class DFT(object):
             log.ThugLogging.Features.increase_data_uri_count()
 
         h = uri.split(",")
-        if len(h) < 2:
+        if len(h) < 2 or not h[1]:
             return False
 
         data = h[1]
@@ -1361,7 +1360,7 @@ class DFT(object):
 
             opts.remove('base64')
 
-        if not opts[0]:
+        if not opts or not opts[0]:
             opts = ["text/plain", "charset=US-ASCII"]
 
         mimetype = opts[0]
@@ -1579,17 +1578,20 @@ class DFT(object):
             while recur:
                 recur = False
 
-                if tuple(soup.descendants) == tuple(_soup.descendants):
+                try:
+                    if tuple(soup.descendants) == tuple(_soup.descendants):
+                        break
+
+                    for _child in set(soup.descendants) - set(_soup.descendants):
+                        if _child not in analyzed:
+                            analyzed.add(_child)
+                            recur = True
+
+                            name = getattr(_child, "name", None)
+                            if name:
+                                self.do_handle(_child, soup, False)
+                except AttributeError:
                     break
-
-                for _child in set(soup.descendants) - set(_soup.descendants):
-                    if _child not in analyzed:
-                        analyzed.add(_child)
-                        recur = True
-
-                        name  = getattr(_child, "name", None)
-                        if name:
-                            self.do_handle(_child, soup, False)
 
             analyzed.clear()
             _soup = soup

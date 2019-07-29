@@ -86,31 +86,40 @@ def send(self, varBody = None):
     if response is None:
         return 0
 
-    self.dispatchEvent("readystatechange")
-
     self.status          = response.status_code
     self.responseHeaders = response.headers
-    self.responseBody    = response.text
+    self.responseBody    = response.content
     self.responseText    = response.text
     self.readyState      = 4
 
     if getattr(log, 'XMLHTTP', None) is None:
         log.XMLHTTP = dict()
 
+    log.XMLHTTP['status']          = self.status
+    log.XMLHTTP['responseHeaders'] = self.responseHeaders
+    log.XMLHTTP['responseBody']    = self.responseBody
+    log.XMLHTTP['responseText']    = self.responseText
+    log.XMLHTTP['readyState']      = self.readyState
+
     last_bstrUrl    = log.XMLHTTP.get('last_bstrUrl', None)
     last_bstrMethod = log.XMLHTTP.get('last_bstrMethod', None)
 
-    if last_bstrUrl in (self.bstrUrl, ) and last_bstrMethod in (self.bstrMethod, ):
+    if last_bstrUrl in (self.bstrUrl, ) and last_bstrMethod in (self.bstrMethod, ): # pragma: no cover
         return 0
 
     log.XMLHTTP['last_bstrUrl']    = str(self.bstrUrl)
     log.XMLHTTP['last_bstrMethod'] = str(self.bstrMethod)
 
-    contenttype = self.responseHeaders.get('content-type', None)
-    if contenttype is None:
+    if self.mimeType:
+        contenttype = self.mimeType
+    else:
+        contenttype = self.responseHeaders.get('content-type', None)
+
+    if contenttype is None: # pragma: no cover
         return 0
 
     self.dispatchEvent("load")
+    self.dispatchEvent("readystatechange")
 
     if 'javascript' in contenttype:
         html = tostring(E.HTML(E.HEAD(), E.BODY(E.SCRIPT(response.text))))
@@ -150,17 +159,7 @@ def setRequestHeader(self, bstrHeader, bstrValue):
 
 
 def getResponseHeader(self, header):
-    body = ""
-    if header in self.responseHeaders:
-        body = self.responseHeaders[header]
-
-    try:
-        self._window._navigator.fetch(self.bstrUrl,
-                                      method  = self.bstrMethod,
-                                      headers = self.requestHeaders,
-                                      body    = body)
-    except Exception:
-        pass
+    return self.responseHeaders.get(header, None)
 
 
 def getAllResponseHeaders(self):
@@ -172,7 +171,7 @@ def getAllResponseHeaders(self):
 
 
 def overrideMimeType(self, mimetype):
-    pass
+    self.mimeType = mimetype
 
 
 def addEventListener(self, _type, listener, useCapture = False):

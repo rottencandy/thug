@@ -15,6 +15,7 @@ class TestMiscSamplesIE(object):
 
         thug.set_useragent('winxpie60')
         thug.set_events('click')
+        thug.set_connect_timeout(2)
         thug.disable_cert_logging()
         thug.set_features_logging()
         thug.log_init(sample)
@@ -136,42 +137,6 @@ class TestMiscSamplesIE(object):
                     "Adobe Acrobat"]
         self.do_perform_test(caplog, sample, expected)
 
-    def test_testLocation1(self, caplog):
-        sample   = os.path.join(self.misc_path, "testLocation1.html")
-        expected = ["[HREF Redirection (document.location)]",
-                    "Content-Location: about:blank --> Location: https://buffer.github.io/thug/"]
-        self.do_perform_test(caplog, sample, expected)
-
-    def test_testLocation2(self, caplog):
-        sample   = os.path.join(self.misc_path, "testLocation2.html")
-        expected = ["[HREF Redirection (document.location)]",
-                    "Content-Location: about:blank --> Location: https://buffer.github.io/thug/"]
-        self.do_perform_test(caplog, sample, expected)
-
-    def test_testLocation3(self, caplog):
-        sample   = os.path.join(self.misc_path, "testLocation3.html")
-        expected = ["[HREF Redirection (document.location)]",
-                    "Content-Location: about:blank --> Location: https://buffer.github.io/thug/"]
-        self.do_perform_test(caplog, sample, expected)
-
-    def test_testLocation4(self, caplog):
-        sample   = os.path.join(self.misc_path, "testLocation4.html")
-        expected = ["[HREF Redirection (document.location)]",
-                    "Content-Location: about:blank --> Location: https://buffer.github.io/thug/"]
-        self.do_perform_test(caplog, sample, expected)
-
-    def test_testLocation5(self, caplog):
-        sample   = os.path.join(self.misc_path, "testLocation5.html")
-        expected = ["[HREF Redirection (document.location)]",
-                    "Content-Location: about:blank --> Location: https://buffer.github.io/thug/"]
-        self.do_perform_test(caplog, sample, expected)
-
-    def test_testLocation6(self, caplog):
-        sample   = os.path.join(self.misc_path, "testLocation6.html")
-        expected = ["[HREF Redirection (document.location)]",
-                    "Content-Location: about:blank --> Location: https://buffer.github.io/thug/"]
-        self.do_perform_test(caplog, sample, expected)
-
     def test_testMetaXUACompatibleEdge(self, caplog):
         sample   = os.path.join(self.misc_path, "testMetaXUACompatibleEdge.html")
         expected = ["[Window] Alert Text: 7"]
@@ -254,16 +219,6 @@ class TestMiscSamplesIE(object):
     def test_testInsertAdjacentHTML5(self, caplog):
         sample   = os.path.join(self.misc_path, "testInsertAdjacentHTML5.html")
         expected = ['insertAdjacentHTML does not support notcorrect operation']
-        self.do_perform_test(caplog, sample, expected)
-
-    def test_testMicrosoftXMLHTTPEvent1(self, caplog):
-        sample   = os.path.join(self.misc_path, "testMicrosoftXMLHTTPEvent1.html")
-        expected = ["[Window] Alert Text: Request completed"]
-        self.do_perform_test(caplog, sample, expected)
-
-    def test_testMicrosoftXMLHTTPEvent2(self, caplog):
-        sample   = os.path.join(self.misc_path, "testMicrosoftXMLHTTPEvent2.html")
-        expected = ["[Window] Alert Text: Request completed"]
         self.do_perform_test(caplog, sample, expected)
 
     def test_testCurrentScript(self, caplog):
@@ -723,7 +678,21 @@ class TestMiscSamplesIE(object):
 
     def test_testHTMLDocument(self, caplog):
         sample   = os.path.join(self.misc_path, "testHTMLDocument.html")
-        expected = ['disabled: false',
+        expected = ['document.title: Test',
+                    'document.title: Foobar',
+                    'anchors: [object HTMLCollection]',
+                    'anchors length: 1',
+                    'anchors[0].name: foobar',
+                    'applets: [object HTMLCollection]',
+                    'applets length: 2',
+                    'applets[0].code: HelloWorld.class',
+                    'links: [object HTMLCollection]',
+                    'links length: 1',
+                    'links[0].href: https://github.com/buffer/thug/',
+                    'images: [object HTMLCollection]',
+                    'images length: 1',
+                    'images[0].href: test.jpg',
+                    'disabled: false',
                     'head: [object HTMLHeadElement]',
                     'referrer: ',
                     'URL: about:blank',
@@ -777,37 +746,9 @@ class TestMiscSamplesIE(object):
 
         self.do_perform_test(caplog, sample, expected)
 
-    def test_testVsaIDEDTE(self, caplog):
-        sample   = os.path.join(self.misc_path, "testVsaIDEDTE.html")
-        expected = ['[VsaIDE.DTE ActiveX] CreateObject (WScript.Network)']
-
-        self.do_perform_test(caplog, sample, expected)
-
-    def test_testVsmIDEDTE(self, caplog):
-        sample   = os.path.join(self.misc_path, "testVsmIDEDTE.html")
-        expected = ['[VsmIDE.DTE ActiveX] CreateObject (WScript.Network)']
-
-        self.do_perform_test(caplog, sample, expected)
-
     def test_testApplet(self, caplog):
         sample   = os.path.join(self.misc_path, "testApplet.html")
         expected = ['[applet redirection]']
-
-        self.do_perform_test(caplog, sample, expected)
-
-    def test_testFrame(self, caplog):
-        sample   = os.path.join(self.misc_path, "testFrame.html")
-        expected = ['[frame redirection]',
-                    'Alert Text: https://buffer.github.io/thug/',
-                    'Alert Text: data:text/html,<script>alert(\'Hello world\');</script>']
-
-        self.do_perform_test(caplog, sample, expected)
-
-    def test_testIFrame(self, caplog):
-        sample   = os.path.join(self.misc_path, "testIFrame.html")
-        expected = ['[iframe redirection]',
-                    'width: 3',
-                    'height: 4']
 
         self.do_perform_test(caplog, sample, expected)
 
@@ -816,5 +757,80 @@ class TestMiscSamplesIE(object):
         expected = ['src (before changes): test.jpg',
                     'src (after first change): test2.jpg',
                     'onerror handler fired']
+
+        self.do_perform_test(caplog, sample, expected)
+
+    def test_testTitle(self, caplog):
+        sample   = os.path.join(self.misc_path, "testTitle.html")
+        expected = ['New title: Foobar']
+
+        self.do_perform_test(caplog, sample, expected)
+
+    def test_UserProfile(self, caplog):
+        sample   = os.path.join(self.misc_path, "testUserProfile.html")
+        expected = ['Test 1',
+                    'Test 2']
+
+        self.do_perform_test(caplog, sample, expected)
+
+    def test_testCSSStyleDeclaration(self, caplog):
+        sample   = os.path.join(self.misc_path, "testCSSStyleDeclaration.html")
+        expected = ['style: [object CSSStyleDeclaration]',
+                    'length: 1',
+                    'cssText: color: blue;',
+                    'color: blue',
+                    'item(0): color',
+                    'item(100):',
+                    'getPropertyValue(\'color\'): blue',
+                    'length (after removeProperty): 0',
+                    'cssText: foo: bar;']
+
+        self.do_perform_test(caplog, sample, expected)
+
+    def test_testFormProperty(self, caplog):
+        sample   = os.path.join(self.misc_path, "testFormProperty.html")
+        expected = ['[object HTMLFormElement]',
+                    'formA']
+
+        self.do_perform_test(caplog, sample, expected)
+
+    def test_testVBScript(self, caplog):
+        sample   = os.path.join(self.misc_path, "testVBScript.html")
+        expected = ['[VBS embedded URL redirection]',
+                    'http://192.168.1.100/putty.exe']
+
+        self.do_perform_test(caplog, sample, expected)
+
+    def test_testFontFaceRule1(self, caplog):
+        sample   = os.path.join(self.misc_path, "testFontFaceRule1.html")
+        expected = ['[font face redirection]',
+                    'http://192.168.1.100/putty.exe']
+
+        self.do_perform_test(caplog, sample, expected)
+
+    def test_testFontFaceRule2(self, caplog):
+        sample   = os.path.join(self.misc_path, "testFontFaceRule2.html")
+        expected = ['[font face redirection]',
+                    'https://mdn.mozillademos.org/files/2468/VeraSeBd.ttf']
+
+        self.do_perform_test(caplog, sample, expected)
+
+    def test_testSilverLight(self, caplog):
+        sample   = os.path.join(self.misc_path, "testSilverLight.html")
+        expected = ['[SilverLight] isVersionSupported(\'4.0\')',
+                    'Version 4.0 supported: true']
+
+        self.do_perform_test(caplog, sample, expected)
+
+    def test_testMSXML2Document(self, caplog):
+        sample   = os.path.join(self.misc_path, "testMSXML2Document.html")
+        expected = ['[MSXML2.DOMDocument] Microsoft XML Core Services MSXML Uninitialized Memory Corruption',
+                    'CVE-2012-1889']
+
+        self.do_perform_test(caplog, sample, expected)
+
+    def test_testExternal(self, caplog):
+        sample   = os.path.join(self.misc_path, "testExternal.html")
+        expected = []
 
         self.do_perform_test(caplog, sample, expected)

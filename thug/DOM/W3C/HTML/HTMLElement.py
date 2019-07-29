@@ -2,8 +2,8 @@
 
 import logging
 import random
+import bs4
 from six import StringIO
-import bs4 as BeautifulSoup
 
 from thug.DOM.W3C.Core.DOMException import DOMException
 from thug.DOM.W3C.Core.Element import Element
@@ -14,11 +14,11 @@ log = logging.getLogger("Thug")
 
 
 class HTMLElement(Element, ElementCSSInlineStyle):
-    id              = attr_property("id")
-    title           = attr_property("title")
-    lang            = attr_property("lang")
-    dir             = attr_property("dir")
-    className       = attr_property("class", default = "")
+    id        = attr_property("id")
+    title     = attr_property("title")
+    lang      = attr_property("lang")
+    dir       = attr_property("dir")
+    className = attr_property("class", default = "")
 
     def __init__(self, doc, tag):
         Element.__init__(self, doc, tag)
@@ -41,7 +41,7 @@ class HTMLElement(Element, ElementCSSInlineStyle):
         html = StringIO()
 
         for tag in self.tag.contents:
-            html.write(unicode(tag))
+            html.write(str(tag))
 
         return html.getvalue()
 
@@ -50,7 +50,7 @@ class HTMLElement(Element, ElementCSSInlineStyle):
 
         self.tag.clear()
 
-        for node in BeautifulSoup.BeautifulSoup(html, "html.parser").contents:
+        for node in bs4.BeautifulSoup(html, "html.parser").contents:
             self.tag.append(node)
 
             name = getattr(node, 'name', None)
@@ -100,6 +100,6 @@ class HTMLElement(Element, ElementCSSInlineStyle):
             target = self.tag.parent if self.tag.parent else self.doc.find('body')
             pos    = target.index(self.tag) + 1
 
-        for node in BeautifulSoup.BeautifulSoup(text, "html.parser").contents:
+        for node in bs4.BeautifulSoup(text, "html.parser").contents:
             target.insert(pos, node)
             pos += 1

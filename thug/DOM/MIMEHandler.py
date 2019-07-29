@@ -22,9 +22,9 @@ import json
 import logging
 import zipfile
 import tempfile
-from six import StringIO
-import bs4 as BeautifulSoup
+import bs4
 import rarfile
+from six import BytesIO
 
 log = logging.getLogger("Thug")
 
@@ -262,7 +262,7 @@ class MIMEHandler(dict):
         if len(content) < self.MIN_ZIP_FILE_SIZE:
             return False
 
-        fp = StringIO(content)
+        fp = BytesIO(content)
         if not zipfile.is_zipfile(fp):
             return False
 
@@ -370,7 +370,7 @@ class MIMEHandler(dict):
         headers['Connection'] = 'keep-alive'
 
         try:
-            soup = BeautifulSoup.BeautifulSoup(data, "lxml")
+            soup = bs4.BeautifulSoup(data, "lxml")
         except Exception:
             return
 

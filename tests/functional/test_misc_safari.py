@@ -6,15 +6,16 @@ from thug.ThugAPI.ThugAPI import ThugAPI
 log = logging.getLogger("Thug")
 
 
-class TestMiscSamplesChrome(object):
+class TestMiscSamplesSafari(object):
     thug_path = os.path.dirname(os.path.realpath(__file__)).split("thug")[0]
     misc_path = os.path.join(thug_path, "thug", "samples/misc")
 
-    def do_perform_test(self, caplog, sample, expected):
+    def do_perform_test(self, caplog, sample, expected, useragent = 'osx10safari5'):
         thug = ThugAPI()
 
-        thug.set_useragent('osx10safari5')
+        thug.set_useragent(useragent)
         thug.set_events('click,storage')
+        thug.set_connect_timeout(2)
         thug.disable_cert_logging()
         thug.set_features_logging()
         thug.log_init(sample)
@@ -49,7 +50,7 @@ class TestMiscSamplesChrome(object):
     def test_test1(self, caplog):
         sample   = os.path.join(self.misc_path, "test1.html")
         expected = ['[Window] Alert Text: one']
-        self.do_perform_test(caplog, sample, expected)
+        self.do_perform_test(caplog, sample, expected, useragent = 'ipadsafari9')
 
     def test_test2(self, caplog):
         sample   = os.path.join(self.misc_path, "test2.html")
@@ -563,7 +564,21 @@ class TestMiscSamplesChrome(object):
 
     def test_testHTMLDocument(self, caplog):
         sample   = os.path.join(self.misc_path, "testHTMLDocument.html")
-        expected = ['disabled: false',
+        expected = ['document.title: Test',
+                    'document.title: Foobar',
+                    'anchors: [object HTMLCollection]',
+                    'anchors length: 1',
+                    'anchors[0].name: foobar',
+                    'applets: [object HTMLCollection]',
+                    'applets length: 2',
+                    'applets[0].code: HelloWorld.class',
+                    'links: [object HTMLCollection]',
+                    'links length: 1',
+                    'links[0].href: https://github.com/buffer/thug/',
+                    'images: [object HTMLCollection]',
+                    'images length: 1',
+                    'images[0].href: test.jpg',
+                    'disabled: false',
                     'head: [object HTMLHeadElement]',
                     'referrer: ',
                     'URL: about:blank',
@@ -613,5 +628,73 @@ class TestMiscSamplesChrome(object):
         expected = ['src (before changes): test.jpg',
                     'src (after first change): test2.jpg',
                     'onerror handler fired']
+
+        self.do_perform_test(caplog, sample, expected)
+
+    def test_testTitle(self, caplog):
+        sample   = os.path.join(self.misc_path, "testTitle.html")
+        expected = ['New title: Foobar']
+
+        self.do_perform_test(caplog, sample, expected)
+
+    def test_testCSSStyleDeclaration(self, caplog):
+        sample   = os.path.join(self.misc_path, "testCSSStyleDeclaration.html")
+        expected = ['style: [object CSSStyleDeclaration]',
+                    'length: 1',
+                    'cssText: color: blue;',
+                    'color: blue',
+                    'item(0): color',
+                    'item(100):',
+                    'getPropertyValue(\'color\'): blue',
+                    'length (after removeProperty): 0',
+                    'cssText: foo: bar;']
+
+        self.do_perform_test(caplog, sample, expected)
+
+    def test_testFormProperty(self, caplog):
+        sample   = os.path.join(self.misc_path, "testFormProperty.html")
+        expected = ['[object HTMLFormElement]',
+                    'formA']
+
+        self.do_perform_test(caplog, sample, expected)
+
+    def test_testFontFaceRule1(self, caplog):
+        sample   = os.path.join(self.misc_path, "testFontFaceRule1.html")
+        expected = ['[font face redirection]',
+                    'http://192.168.1.100/putty.exe']
+
+        self.do_perform_test(caplog, sample, expected)
+
+    def test_testFontFaceRule2(self, caplog):
+        sample   = os.path.join(self.misc_path, "testFontFaceRule2.html")
+        expected = ['[font face redirection]',
+                    'https://mdn.mozillademos.org/files/2468/VeraSeBd.ttf']
+
+        self.do_perform_test(caplog, sample, expected)
+
+    def test_testHistory(self, caplog):
+        sample   = os.path.join(self.misc_path, "testHistory.html")
+        expected = ['history: [object History]',
+                    'window: [object Window]',
+                    'navigationMode (before change): automatic',
+                    'navigationMode (after change): fast']
+
+        self.do_perform_test(caplog, sample, expected)
+
+    def test_testConsole(self, caplog):
+        sample   = os.path.join(self.misc_path, "testConsole.html")
+        expected = ['[object Console]',
+                    '[Console] assert(True, \'Test assert\')',
+                    '[Console] count() = 1',
+                    '[Console] count(\'foobar\') = 1',
+                    '[Console] count(\'foobar\') = 2',
+                    '[Console] error(\'Test error\')',
+                    '[Console] log(\'Hello world!\')',
+                    '[Console] group()',
+                    '[Console] log(\'Hello again, this time inside a group!\')',
+                    '[Console] groupEnd()',
+                    '[Console] groupCollapsed()',
+                    '[Console] info(\'Hello again\')',
+                    '[Console] warn(\'Hello again\')']
 
         self.do_perform_test(caplog, sample, expected)

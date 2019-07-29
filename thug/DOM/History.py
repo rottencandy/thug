@@ -28,7 +28,7 @@ class History(JSClass):
     def __init__(self, window):
         self._window  = window
         self.urls     = Alexa
-        self.pos      = None
+        self.pos      = len(self.urls) - 1
 
         self.__init_personality()
 
@@ -75,21 +75,15 @@ class History(JSClass):
 
     @property
     def _current(self):
-        if self.pos:
-            return self.urls[self.pos]
-        return None
+        return self.urls[self.pos] if self.length > self.pos and self.pos > 0 else None
 
     @property
     def _next(self):
-        if self.pos and len(self.urls) > self.pos + 1:
-            return self.urls[self.pos + 1]
-        return None
+        return self.urls[self.pos + 1] if self.length > self.pos + 1 and self.pos > 0 else None
 
     @property
     def _previous(self):
-        if self.pos and self.pos > 0:
-            return self.urls[self.pos - 1]
-        return None
+        return self.urls[self.pos - 1] if self.length > self.pos - 1 and self.pos > 0 else None
 
     def _get_navigationMode(self):
         return self._navigationMode
@@ -97,6 +91,12 @@ class History(JSClass):
     def _set_navigationMode(self, value):
         if value in ("automatic", "compatible", "fast", ):
             self._navigationMode = value
+
+    navigationMode = property(_get_navigationMode, _set_navigationMode)
+
+    def pushState(self, state, title, URL):
+        # self._window.url = URL
+        pass
 
     def back(self):
         """Loads the previous URL in the history list"""
@@ -118,12 +118,10 @@ class History(JSClass):
             self._window.open(num_or_url)
 
     def update(self, url, replace = False):
-        if self.pos is None:
-            self.urls.append(url)
-            self.pos = 0
-        elif replace:
+        if replace:
             self.urls[self.pos] = url
-        elif self.urls[self.pos] != url:
-            self.urls = self.urls[:self.pos + 1]
-            self.urls.append(url)
+            return
+
+        if self.urls[self.pos] != url:
+            self.urls.insert(self.pos, url)
             self.pos += 1

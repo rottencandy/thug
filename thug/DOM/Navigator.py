@@ -92,26 +92,33 @@ class Navigator(JSClass):
         self.language     = self._language
         self.preference   = self._preference
 
-        self.registerContentHandler  = self._registerContentHandler
+        if log.ThugOpts.Personality.browserMajorVersion < 35:
+            self.mozIsLocallyAvailable = self._mozIsLocallyAvailable
+
+        if log.ThugOpts.Personality.browserMajorVersion < 62:
+            self.registerContentHandler  = self._registerContentHandler
+
         self.registerProtocolHandler = self._registerProtocolHandler
 
     def __init_personality_Chrome(self):
-        self.mimeTypes  = self._mimeTypes
-        self.plugins    = self._plugins
-        self.product    = self._product
-        self.productSub = self._productSub
-        self.vendor     = self._vendor
-        self.vendorSub  = self._vendorSub
-        self.language   = self._language
+        self.mimeTypes    = self._mimeTypes
+        self.plugins      = self._plugins
+        self.taintEnabled = self._taintEnabled
+        self.product      = self._product
+        self.productSub   = self._productSub
+        self.vendor       = self._vendor
+        self.vendorSub    = self._vendorSub
+        self.language     = self._language
 
     def __init_personality_Safari(self):
-        self.mimeTypes  = self._mimeTypes
-        self.plugins    = self._plugins
-        self.product    = self._product
-        self.productSub = self._productSub
-        self.vendor     = self._vendor
-        self.vendorSub  = self._vendorSub
-        self.language   = self._language
+        self.mimeTypes    = self._mimeTypes
+        self.plugins      = self._plugins
+        self.taintEnabled = self._taintEnabled
+        self.product      = self._product
+        self.productSub   = self._productSub
+        self.vendor       = self._vendor
+        self.vendorSub    = self._vendorSub
+        self.language     = self._language
 
     @property
     def window(self):
@@ -248,29 +255,29 @@ class Navigator(JSClass):
 
     # Lets code check to see if the document at a given URI is
     # available without using the network.
-    def mozIsLocallyAvailable(self, *arg):
+    def _mozIsLocallyAvailable(self, uri, ifOffline):
         return False
 
     # Sets a user preference.
     # self method is only available to privileged code, and you
     # should use XPCOM Preferences API instead.
-    def _preference(self, *arg):
+    def _preference(self, name, value = None):
         pass
 
     # Allows web sites to register themselves as a possible handler
     # for a given MIME type.
-    def _registerContentHandler(self, *arg):
+    def _registerContentHandler(self, mimeType, uri, title):
         pass
 
     # New in Firefox 3
     # Allows web sites to register themselves as a possible handler
     # for a given protocol.
-    def _registerProtocolHandler(self, *arg):
+    def _registerProtocolHandler(self, protocol, url, title):
         pass
 
     # Obsolete
     # JavaScript taint/untaint functions removed in JavaScript 1.2[1]
-    def _taintEnabled(self, *arg):
+    def _taintEnabled(self):
         return True
 
     def fetch(self, url, method = "GET", headers = None, body = None, redirect_type = None, params = None, snippet = None):
@@ -360,12 +367,12 @@ class Navigator(JSClass):
 
         log.last_url_fetched = response.url
 
-        if log.ThugOpts.features_logging:
-            log.ThugLogging.Features.add_characters_count(len(response.text))
-            log.ThugLogging.Features.add_whitespaces_count(len([a for a in response.text if a.isspace()]))
-
         handler = log.MIMEHandler.get_handler(ctype)
         if handler:
             handler(response.url, response.content)
+        else:
+            if log.ThugOpts.features_logging:
+                log.ThugLogging.Features.add_characters_count(len(response.text))
+                log.ThugLogging.Features.add_whitespaces_count(len([a for a in response.text if a.isspace()]))
 
         return response

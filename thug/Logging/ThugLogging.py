@@ -16,14 +16,6 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston,
 # MA  02111-1307  USA
 
-from .BaseLogging import BaseLogging
-from .SampleLogging import SampleLogging
-from .LoggingModules import LoggingModules
-from .Features import Features
-from thug.Analysis.virustotal.VirusTotal import VirusTotal
-from thug.Analysis.honeyagent.HoneyAgent import HoneyAgent
-from thug.Analysis.context.ContextAnalyzer import ContextAnalyzer
-
 import os
 import copy
 import uuid
@@ -34,7 +26,15 @@ import hashlib
 import logging
 import six.moves.configparser as ConfigParser
 
+from thug.Analysis.virustotal.VirusTotal import VirusTotal
+from thug.Analysis.honeyagent.HoneyAgent import HoneyAgent
+from thug.Analysis.context.ContextAnalyzer import ContextAnalyzer
 from thug.Magic.Magic import Magic
+
+from .BaseLogging import BaseLogging
+from .SampleLogging import SampleLogging
+from .LoggingModules import LoggingModules
+from .Features import Features
 
 log = logging.getLogger("Thug")
 
@@ -58,6 +58,7 @@ class ThugLogging(BaseLogging, SampleLogging):
         self.retrieved_urls  = set()
         self.methods_cache   = dict()
         self.formats         = set()
+        self.meta            = dict()
         self.url             = ""
 
         self.__init_hook_symbols()
@@ -74,7 +75,7 @@ class ThugLogging(BaseLogging, SampleLogging):
         self.modules = dict()
 
         conf_file = os.path.join(log.configuration_path, 'thug.conf')
-        if not os.path.exists(conf_file):
+        if not os.path.exists(conf_file): # pragma: no cover
             log.warning("[CRITICAL] Logging subsystem not initialized (configuration file not found)")
             return
 
@@ -125,10 +126,10 @@ class ThugLogging(BaseLogging, SampleLogging):
 
     def add_code_snippet(self, snippet, language, relationship, method = "Dynamic Analysis", check = False, force = False):
         if not log.ThugOpts.code_logging and not force:
-            return
+            return None
 
         if check and self.check_snippet(snippet):
-            return
+            return None
 
         tag = uuid.uuid4()
 
@@ -349,7 +350,7 @@ class ThugLogging(BaseLogging, SampleLogging):
         @content    The content to be stored
         """
         if not log.ThugOpts.file_logging:
-            return
+            return None
 
         try:
             os.makedirs(dirname)

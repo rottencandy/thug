@@ -37,6 +37,45 @@
 		window.scrollTo(8, 10);
 	} catch(e) {}
 
+	alert("constructor: " + window.constructor);
+	alert("prototype: " + window.prototype);
+
+	try {
+		alert(window.__members__);
+	} catch(e) {}
+
+	window.close()
+	alert("closed: " + window.closed);
+
+	window.top = window;
+	alert("top: " + window.top);
+	alert("opener: " + window.opener);
+
+	window.dump("Test");
+	window.GetAttention();
+	window.back()
+	window.home();
+
+	if (window.navigate) {
+		window.navigate('about:blank');
+	}
+
+	if (window.execScript) {
+		window.execScript("On error resume next:\n a = IsObject(CreateObject('ShockwaveFlash.ShockwaveFlash.10'))", "VBScript");
+	}
+
+	window.getSelection();
+
+	window.top = window.top;
+
+	window.captureEvents("onmouseover");
+	window.releaseEvents("onmouseover");
+
+	window.prompt("Please enter your name: ", "John");
+	window.stop();
+	window.open("https://buffer.antifork.org", "Test", "width=200,height=100");
+	window.open('http://this.url.does.not.exist');
 	</script>
+	<script></script>
 </body>
 </html

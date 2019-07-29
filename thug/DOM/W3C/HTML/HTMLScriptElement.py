@@ -10,10 +10,7 @@ log = logging.getLogger("Thug")
 
 
 class HTMLScriptElement(HTMLElement):
-    def __init__(self, doc, tag):
-        HTMLElement.__init__(self, doc, tag)
-
-    async   = attr_property("async", bool)
+    _async  = attr_property("async", bool)
     text    = text_property()
     htmlFor = None
     event   = None
@@ -21,6 +18,10 @@ class HTMLScriptElement(HTMLElement):
     defer   = attr_property("defer", bool)
     _src    = attr_property("src", default = "")
     type    = attr_property("type")
+
+    def __init__(self, doc, tag):
+        HTMLElement.__init__(self, doc, tag)
+        self.async = self._async
 
     def get_src(self):
         return self._src

@@ -2,7 +2,7 @@
 
 import copy
 import logging
-import bs4 as BeautifulSoup
+import bs4
 
 from thug.DOM.JSClass import JSClass
 from .abstractmethod import abstractmethod
@@ -75,20 +75,20 @@ class Node(JSClass, EventTarget):
 
     @property
     @abstractmethod
-    def nodeType(self):
+    def nodeType(self): # pragma: no cover
         pass
 
     @property
     @abstractmethod
-    def nodeName(self):
+    def nodeName(self): # pragma: no cover
         pass
 
     @abstractmethod
-    def getNodeValue(self):
+    def getNodeValue(self): # pragma: no cover
         pass
 
     @abstractmethod
-    def setNodeValue(self, value):
+    def setNodeValue(self, value): # pragma: no cover
         pass
 
     nodeValue = property(getNodeValue, setNodeValue)
@@ -114,11 +114,11 @@ class Node(JSClass, EventTarget):
 
     @property
     def firstChild(self):
-        return Node.wrap(self.doc, self.tag.contents[0]) if len(self.tag) > 0 else None
+        return Node.wrap(self.doc, self.tag.contents[0]) if self.tag.contents else None
 
     @property
     def lastChild(self):
-        return Node.wrap(self.doc, self.tag.contents[-1]) if len(self.tag) > 0 else None
+        return Node.wrap(self.doc, self.tag.contents[-1]) if self.tag.contents else None
 
     @property
     def nextSibling(self):
@@ -243,12 +243,12 @@ class Node(JSClass, EventTarget):
         # NO_MODIFICATION_ALLOWED_ERR: Raised if this node or the parent of
         # the new node is readonly.
         if self.is_readonly(self):
-            raise DOMException(DOMException.NO_MODIFICATION_ALLOWED)
+            raise DOMException(DOMException.NO_MODIFICATION_ALLOWED_ERR)
 
         parent = getattr(newChild, 'parentNode', None)
         if parent:
-            if self.is_readonly(parent):
-                raise DOMException(DOMException.NO_MODIFICATION_ALLOWED)
+            if self.is_readonly(parent): # pragma: no cover
+                raise DOMException(DOMException.NO_MODIFICATION_ALLOWED_ERR)
 
         if not newChild or not oldChild:
             raise DOMException(DOMException.HIERARCHY_REQUEST_ERR)
@@ -290,7 +290,7 @@ class Node(JSClass, EventTarget):
 
         # NO_MODIFICATION_ALLOWED_ERR: Raised if this node is readonly
         if self.is_readonly(self):
-            raise DOMException(DOMException.NO_MODIFICATION_ALLOWED)
+            raise DOMException(DOMException.NO_MODIFICATION_ALLOWED_ERR)
 
         if not oldChild:
             raise DOMException(DOMException.NOT_FOUND_ERR)
@@ -320,7 +320,7 @@ class Node(JSClass, EventTarget):
 
         # NO_MODIFICATION_ALLOWED_ERR: Raised if this node is readonly
         if self.is_readonly(self):
-            raise DOMException(DOMException.NO_MODIFICATION_ALLOWED)
+            raise DOMException(DOMException.NO_MODIFICATION_ALLOWED_ERR)
 
         if self.is_text(self):
             raise DOMException(DOMException.HIERARCHY_REQUEST_ERR)
@@ -378,7 +378,7 @@ class Node(JSClass, EventTarget):
         pass
 
     # Introduced in DOM Level 2
-    def isSupported(self, feature, version):
+    def isSupported(self, feature, version): # pragma: no cover
         from .DOMImplementation import DOMImplementation
         return DOMImplementation.hasFeature(feature, version)
 
@@ -416,11 +416,11 @@ class Node(JSClass, EventTarget):
         if obj is None:
             return None
 
-        if isinstance(obj, BeautifulSoup.CData):
+        if isinstance(obj, bs4.CData): # pragma: no cover
             from .CDATASection import CDATASection
             return CDATASection(doc, obj)
 
-        if isinstance(obj, BeautifulSoup.NavigableString):
+        if isinstance(obj, bs4.NavigableString):
             from .Text import Text
             return Text(doc, obj)
 

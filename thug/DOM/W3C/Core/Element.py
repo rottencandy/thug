@@ -101,13 +101,10 @@ class Element(Node, ElementCSSInlineStyle):
 
         try:
             s = self.tag.select(selectors)
-        except Exception:
+        except Exception: # pragma: no cover
             return None
 
-        if s and s[0]:
-            return DOMImplementation.createHTMLElement(self, s[0])
-
-        return None
+        return DOMImplementation.createHTMLElement(self, s[0]) if s and s[0] else None
 
     def _matches(self, selector):
         try:
@@ -162,7 +159,7 @@ class Element(Node, ElementCSSInlineStyle):
         return self.tag.name.upper()
 
     def getAttribute(self, name, flags = 0):
-        if not isinstance(name, six.string_types):
+        if not isinstance(name, six.string_types): # pragma: no cover
             name = str(name)
 
         if log.ThugOpts.Personality.isIE():
@@ -198,7 +195,7 @@ class Element(Node, ElementCSSInlineStyle):
         if log.ThugOpts.features_logging:
             log.ThugLogging.Features.increase_setattribute_count()
 
-        if not isinstance(name, six.string_types):
+        if not isinstance(name, six.string_types): # pragma: no cover
             name = str(name)
 
         if log.ThugOpts.Personality.isFirefox():

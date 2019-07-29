@@ -24,10 +24,10 @@ import six.moves.configparser as ConfigParser
 try:
     import PyV8
     V8_MODULE = True
-except ImportError:
+except ImportError: # pragma: no cover
     V8_MODULE = False
 
-try:
+try: # pragma: no cover
     import pyduktape2
     DUKTAPE_MODULE = True
 
@@ -48,11 +48,10 @@ except ImportError:
     DUKTAPE_MODULE = False
 
 import thug
-from thug.Debugger.V8Debugger import V8Debugger
-from thug.Debugger.DuktapeDebugger import DuktapeDebugger
+# from thug.Debugger.V8Debugger import V8Debugger
+# from thug.Debugger.DuktapeDebugger import DuktapeDebugger
 
 log = logging.getLogger("Thug")
-
 
 
 class JSEngine(object):
@@ -72,14 +71,14 @@ class JSEngine(object):
         self.engine = self.config.get('jsengine', 'engine')
 
     def init_v8_context(self, window):
-        if not V8_MODULE:
+        if not V8_MODULE: # pragma: no cover
             log.critical("PyV8 not installed. Please review Thug dependencies and configuration")
             sys.exit(1)
 
         self._context = PyV8.JSContext(window, extensions = log.JSExtensions)
         PyV8.JSEngine.setStackLimit(10 * 1024 * 1024)
 
-    def init_duktape_context(self, window):
+    def init_duktape_context(self, window): # pragma: no cover
         if not DUKTAPE_MODULE:
             log.critical("Duktape not installed. Please review Thug dependencies and configuration")
             sys.exit(1)
@@ -116,7 +115,7 @@ class JSEngine(object):
 
         for hook in ('eval', 'write'):
             js = os.path.join(thug.__configuration_path__, 'scripts', '{}.js'.format(hook))
-            if not os.path.exists(js):
+            if not os.path.exists(js): # pragma: no cover
                 continue
 
             symbol = getattr(log.ThugLogging, '{}_symbol'.format(hook))
@@ -138,16 +137,16 @@ class JSEngine(object):
             PyV8.JSEngine.collect()
 
     def init_v8_symbols(self):
-        self.JSDebugger = V8Debugger
+        # self.JSDebugger = V8Debugger
         self.collect = PyV8.JSEngine.collect
         self.terminateAllThreads = PyV8.JSEngine.terminateAllThreads
         self.setStackLimit = PyV8.JSEngine.setStackLimit
 
-    def passthrough(self, *args, **kwargs):
+    def passthrough(self, *args, **kwargs): # pragma: no cover
         pass
 
-    def init_duktape_symbols(self):
-        self.JSDebugger = DuktapeDebugger
+    def init_duktape_symbols(self): # pragma: no cover
+        # self.JSDebugger = DuktapeDebugger
         self.collect = self.passthrough
         self.terminateAllThreads = self.passthrough
         self.setStackLimit = self.passthrough
@@ -164,7 +163,7 @@ class JSEngine(object):
     def is_v8_jsfunction(self, symbol):
         return isinstance(symbol, PyV8.JSFunction)
 
-    def is_duktape_jsfunction(self, symbol):
+    def is_duktape_jsfunction(self, symbol): # pragma: no cover
         return self._context.eval(symbol) in ('function', )
 
     def isJSFunction(self, symbol):
@@ -177,7 +176,7 @@ class JSEngine(object):
     def is_v8_jsobject(self, symbol):
         return isinstance(symbol, PyV8.JSObject)
 
-    def is_duktape_jsobject(self, symbol):
+    def is_duktape_jsobject(self, symbol): # pragma: no cover
         return self._context.eval(symbol) in ('object', )
 
     def isJSObject(self, symbol):
